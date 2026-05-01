@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MATRIX GROUP | ScanMaster Pro</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg: #010103;
+            --primary: #3b8ed0; 
+            --primary-glow: rgba(59, 142, 208, 0.4);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-dim: #94a3b8;
+            --nav-h: 80px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at center, #0a0a1a 0%, #010103 100%);
+        }
+
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; pointer-events: none; }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0; width: 100%;
+            height: var(--nav-h);
+            padding: 0 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2000;
+            background: rgba(1, 1, 3, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo { display: flex; align-items: center; text-decoration: none; transition: 0.3s; }
+        .logo img { height: 45px; width: auto; transition: 0.3s; }
+        .logo:hover img { transform: scale(1.05); filter: drop-shadow(0 0 10px var(--primary-glow)); }
+        .logo-text { font-family: 'Syne'; font-size: 20px; font-weight: 800; color: #fff; margin-left: 12px; letter-spacing: 1px; }
+
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-dim); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* LANGUAGE SWITCHER */
+        .lang-switcher {
+            display: flex;
+            gap: 10px;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid var(--glass-border);
+        }
+        .lang-btn {
+            cursor: pointer;
+            opacity: 0.5;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        .lang-btn img { width: 24px; height: auto; border-radius: 2px; }
+        .lang-btn:hover, .lang-btn.active { opacity: 1; transform: scale(1.1); }
+
+        /* --- HERO --- */
+        .hero {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 140px 6% 60px;
+        }
+
+        .tag { color: var(--primary); font-weight: 700; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 25px; display: block; }
+
+        .hero h1 {
+            font-family: 'Syne';
+            font-size: clamp(40px, 10vw, 90px);
+            line-height: 0.9;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, #fff 50%, #444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- PRODUCT CARD --- */
+        .product-showcase { padding: 40px 6% 80px; display: flex; flex-direction: column; align-items: center; }
+
+        .product-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.3) 100%);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 60px;
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .product-info h2 { font-family: 'Syne'; font-size: 48px; margin-bottom: 15px; }
+        .version-badge { color: var(--primary); font-weight: 700; font-size: 14px; border: 1px solid var(--primary); padding: 4px 12px; border-radius: 100px; display: inline-block; margin-bottom: 20px; }
+        .product-info p { color: var(--text-dim); margin-bottom: 35px; font-size: 18px; line-height: 1.7; }
+
+        .feature-list { display: grid; gap: 18px; margin-bottom: 45px; }
+        .feature-item { display: flex; align-items: center; gap: 14px; font-size: 16px; color: #cbd5e1; }
+        .feature-item i { color: var(--primary); font-size: 18px; }
+
+        /* REAL SCREENSHOT CONTAINER */
+        .product-screenshot-wrap {
+            position: relative;
+            width: 100%;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .screenshot-frame {
+            background: #1e1e1e;
+            border-radius: 12px;
+            border: 1px solid #333;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8), 0 0 40px var(--primary-glow);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .frame-header {
+            background: #181818;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #282828;
+        }
+        
+        .frame-dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+        .screenshot-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: brightness(1.05);
+        }
+
+        .product-screenshot-wrap:hover {
+            transform: scale(1.02) translateY(-10px);
+        }
+
+        /* --- ABOUT DEVELOPER --- */
+        .about-section { padding: 120px 6%; display: flex; flex-direction: column; align-items: center; }
+        
+        .dev-container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 80px 60px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 80px;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+
+        .dev-logo-wrap {
+            width: 350px;
+            height: 350px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .dev-logo-wrap img { width: 70%; height: auto; filter: drop-shadow(0 0 20px var(--primary-glow)); }
+
+        .dev-info h2 { font-family: 'Syne'; font-size: 42px; margin-bottom: 25px; }
+        .dev-info p { color: var(--text-dim); font-size: 19px; margin-bottom: 40px; line-height: 1.8; }
+
+        .dev-stats { display: flex; gap: 50px; }
+        .stat-box span { display: block; font-family: 'Syne'; font-size: 28px; font-weight: 700; color: var(--primary); }
+        .stat-box label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; }
+
+        /* --- DOWNLOAD BUTTON --- */
+        .btn-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            padding: 24px 45px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            box-shadow: 0 20px 40px var(--primary-glow);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-main:hover { transform: translateY(-8px) scale(1.03); filter: brightness(1.1); box-shadow: 0 25px 50px var(--primary-glow); }
+
+        footer { padding: 80px 6%; text-align: center; border-top: 1px solid var(--glass-border); color: var(--text-dim); }
+
+        @media (max-width: 1024px) {
+            .product-card, .dev-container { grid-template-columns: 1fr; padding: 50px 30px; text-align: center; }
+            .dev-logo-wrap { margin: 0 auto; width: 280px; height: 280px; }
+            .dev-stats { justify-content: center; }
+            .nav-links { display: none; }
+            .product-screenshot-wrap { order: -1; }
+        }
+
+        .reveal { opacity: 0; transform: translateY(40px); transition: 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <nav>
+        <a href="#" class="logo">
+            <img src="logo.png" alt="Matrix Group">
+            <div class="logo-text">MATRIX <span>GROUP</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="#about" data-i18n="nav-about">О разработчике</a>
+            <a href="#download" style="color: var(--primary);" data-i18n="nav-download">Скачать</a>
+            
+            <div class="lang-switcher">
+                <div class="lang-btn active" onclick="setLanguage('ru')">
+                    <img src="ru.png" alt="RU">
+                </div>
+                <div class="lang-btn" onclick="setLanguage('en')">
+                    <img src="gb.png" alt="EN">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- HERO -->
+        <section class="hero">
+            <span class="tag reveal" data-i18n="hero-tag">Innovative Software House</span>
+            <h1 class="reveal" data-i18n="hero-title">Инженерия<br>Эффективности.</h1>
+            <p class="reveal" data-i18n="hero-desc" style="max-width: 700px; margin: 0 auto 50px; color: var(--text-dim); font-size: 20px;">
+                Мы создаем мощные инструменты на базе Python для автоматизации ваших ежедневных задач с документами.
+            </p>
+        </section>
+
+        <!-- PRODUCT -->
+        <section id="product" class="product-showcase">
+            <div class="product-card reveal">
+                <div class="product-info">
+                    <span class="version-badge">v1.0.0 Stable</span>
+                    <h2 data-i18n="prod-title">ScanMaster Pro</h2>
+                    <p data-i18n="prod-desc">Профессиональный комбайн для работы с PDF. Объединяйте, улучшайте и защищайте ваши сканы в один клик прямо на вашем ПК.</p>
+                    
+                    <div class="feature-list">
+                        <div class="feature-item"><i class="fas fa-magic"></i> <span data-i18n="feat-1">Интеллектуальное AI-улучшение</span></div>
+                        <div class="feature-item"><i class="fas fa-file-pdf"></i> <span data-i18n="feat-2">Конвертация без потери качества</span></div>
+                        <div class="feature-item"><i class="fas fa-shield-alt"></i> <span data-i18n="feat-3">Локальная обработка данных</span></div>
+                        <div class="feature-item"><i class="fas fa-user-lock"></i> <span data-i18n="feat-4">Поддержка шифрования PDF</span></div>
+                    </div>
+
+                    <a href="ScanMaster_Pro.exe" class="btn-main" id="download">
+                        <i class="fab fa-windows"></i>
+                        <div style="text-align: left;">
+                            <div style="font-size: 10px; opacity: 0.8; font-weight: 400;" data-i18n="btn-sub">Download for Windows</div>
+                            <div style="font-size: 20px;">ScanMaster_Pro.exe</div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="product-screenshot-wrap">
+                    <div class="screenshot-frame">
+                        <div class="frame-header">
+                            <div class="frame-dot" style="background: #ff5f56;"></div>
+                            <div class="frame-dot" style="background: #ffbd2e;"></div>
+                            <div class="frame-dot" style="background: #27c93f;"></div>
+                            <span style="font-size: 10px; color: #555; margin-left: 10px; font-family: sans-serif;">ScanMaster Pro v1.0.0</span>
+                        </div>
+                        <img src="app_screen.png" alt="Интерфейс ScanMaster Pro">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABOUT DEVELOPER -->
+        <section id="about" class="about-section">
+            <span class="tag reveal" data-i18n="about-tag">Разработчик</span>
+            <div class="dev-container reveal">
+                <div class="dev-logo-wrap">
+                    <img src="logo.png" alt="Matrix Group Logo">
+                </div>
+                <div class="dev-info">
+                    <h2 data-i18n="about-title">Matrix Group</h2>
+                    <p data-i18n="about-desc">
+                        Matrix Group — это независимая студия разработки ПО. Мы создаем быстрые, безопасные и красивые приложения для Windows, используя современные технологии Python.
+                    </p>
+                    <div class="dev-stats">
+                        <div class="stat-box">
+                            <span>2025</span>
+                            <label data-i18n="stat-1">Основан</label>
+                        </div>
+                        <div class="stat-box">
+                            <span>100%</span>
+                            <label data-i18n="stat-2">Безопасное ПО</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer data-i18n="footer">
+        <p>© 2026 MATRIX GROUP. Все права защищены.</p>
+    </footer>
+
+    <script>
+        // TRANSLATIONS
+        const translations = {
+            ru: {
+                "nav-products": "Продукты",
+                "nav-about": "О разработчике",
+                "nav-download": "Скачать",
+                "hero-tag": "Innovative Software House",
+                "hero-title": "Инженерия<br>Эффективности.",
+                "hero-desc": "Мы создаем мощные инструменты на базе Python для автоматизации ваших ежедневных задач с документами.",
+                "prod-title": "ScanMaster Pro",
+                "prod-desc": "Профессиональный комбайн для работы с PDF. Объединяйте, улучшайте и защищайте ваши сканы в один клик прямо на вашем ПК.",
+                "feat-1": "Интеллектуальное AI-улучшение",
+                "feat-2": "Конвертация без потери качества",
+                "feat-3": "Локальная обработка данных",
+                "feat-4": "Поддержка шифрования PDF",
+                "btn-sub": "Скачать для Windows",
+                "about-tag": "Разработчик",
+                "about-title": "Matrix Group",
+                "about-desc": "Matrix Group — это независимая студия разработки ПО. Мы создаем быстрые, безопасные и красивые приложения для Windows, используя современные технологии Python.",
+                "stat-1": "Основан",
+                "stat-2": "Безопасное ПО",
+                "footer": "<p>© 2026 MATRIX GROUP. Все права защищены.</p>"
+            },
+            en: {
+                "nav-products": "Products",
+                "nav-about": "Developer",
+                "nav-download": "Download",
+                "hero-tag": "Innovative Software House",
+                "hero-title": "Engineering<br>Efficiency.",
+                "hero-desc": "We create powerful Python-based tools to automate your daily document workflows.",
+                "prod-title": "ScanMaster Pro",
+                "prod-desc": "Professional PDF workstation. Merge, enhance, and protect your scans with one click directly on your PC.",
+                "feat-1": "Intelligent AI Enhancement",
+                "feat-2": "Lossless PDF Conversion",
+                "feat-3": "Local Data Processing",
+                "feat-4": "PDF Encryption Support",
+                "btn-sub": "Download for Windows",
+                "about-tag": "Developer",
+                "about-title": "Matrix Group",
+                "about-desc": "Matrix Group is an independent software studio. We build fast, secure, and beautiful Windows applications using modern Python technologies.",
+                "stat-1": "Established",
+                "stat-2": "Secure Software",
+                "footer": "<p>© 2026 MATRIX GROUP. All rights reserved.</p>"
+            }
+        };
+
+        function setLanguage(lang) {
+            // Update buttons opacity
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Translate elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.innerHTML = translations[lang][key];
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+        }
+
+        // Space Background
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, stars = [];
+        function initSpace() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+            stars = [];
+            for(let i=0; i<150; i++) {
+                stars.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    size: Math.random() * 1.5, opacity: Math.random(),
+                    blink: Math.random() * 0.02 + 0.005
+                });
+            }
+        }
+        function drawSpace() {
+            ctx.clearRect(0, 0, width, height);
+            stars.forEach(s => {
+                s.opacity += s.blink;
+                if(s.opacity > 1 || s.opacity < 0) s.blink *= -1;
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(drawSpace);
+        }
+        window.addEventListener('resize', initSpace);
+        initSpace();
+        drawSpace();
+
+        // Reveal Animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting) entry.target.classList.add('active');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
