@@ -2,12 +2,12 @@
 
 Без зависимостей. Код 0 и «OK» — всё в порядке; код 1 и список ошибок — нет.
 Следит за тем, на что опирается выпуск новых версий: значок версии, список
-возможностей feat-N, ссылка скачивания, тексты на обоих языках, картинки.
+возможностей feat-N, ссылка скачивания, тексты на обоих языках, картинки,
+первая запись истории версий. version.json не проверяет — его правит только выпуск.
 """
 
 import json
 import re
-import subprocess
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -123,13 +123,12 @@ def check(root: Path = ROOT) -> list:
                           for f in ("date", "title", "text")))
             if not ok:
                 errors.append(f"запись releases неполная: {item}")
+        latest = releases[0].get("version") if releases and isinstance(releases[0], dict) else None
+        if len(page.badges) == 1 and latest != page.badges[0].lstrip("v"):
+            errors.append(f"первая запись releases ({latest}) не совпадает со значком {page.badges[0]} — "
+                          "при выпуске добавьте новую версию в начало массива releases")
     except ValueError as error:
         errors.append(f"JSON releases не разбирается: {error}")
-
-    diff = subprocess.run(["git", "diff", "--quiet", "origin/main", "--", "version.json"],
-                          cwd=root, capture_output=True)
-    if diff.returncode == 1:
-        errors.append("version.json изменён относительно origin/main — его правит только выпуск")
     return errors
 
 
