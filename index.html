@@ -32,7 +32,8 @@
   img { max-width: 100%; }
   .mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
   .kicker-line { display: block; margin-bottom: 18px; }
-  section { position: relative; }
+  section { position: relative; scroll-margin-top: 70px; }
+  html.motion .launch { height: 100vh; min-height: 0; padding: 0 6vw; }
   .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; margin-bottom: 64px; }
   .section-head h2, .big-title { font-family: var(--display); font-weight: 300; font-size: clamp(30px, 4.2vw, 64px); letter-spacing: -0.025em; line-height: 1.05; }
   .section-head p { max-width: 400px; color: var(--dim); line-height: 1.6; }
@@ -153,12 +154,17 @@
   .themes { position: relative; display: grid; }
   .themes .shot { grid-area: 1 / 1; }
   /* без анимаций — шаги идут столбиком */
-  html:not(.motion) .features-inner { grid-template-columns: 1fr; padding: 14vh var(--pad); gap: 0; }
-  html:not(.motion) .rail { display: none; }
-  html:not(.motion) .f-texts, html:not(.motion) .f-shots { display: contents; }
-  html:not(.motion) .f-step { margin-top: 10vh; }
-  html:not(.motion) .f-frame { margin-top: 40px; max-width: 1100px; }
-  html:not(.motion) .themes .shot:not(:first-child) { display: none; }
+  html:not(.pinned) .features-inner { grid-template-columns: 1fr; padding: 14vh var(--pad); gap: 0; }
+  html:not(.pinned) .rail { display: none; }
+  html:not(.pinned) .f-texts, html:not(.pinned) .f-shots { display: contents; }
+  html:not(.pinned) .f-step, html:not(.pinned) .f-frame { grid-area: auto; }
+  html:not(.pinned) .f-step:nth-child(1) { order: 1; } html:not(.pinned) .f-frame:nth-child(1) { order: 2; }
+  html:not(.pinned) .f-step:nth-child(2) { order: 3; } html:not(.pinned) .f-frame:nth-child(2) { order: 4; }
+  html:not(.pinned) .f-step:nth-child(3) { order: 5; } html:not(.pinned) .f-frame:nth-child(3) { order: 6; }
+  html:not(.pinned) .f-step:nth-child(4) { order: 7; } html:not(.pinned) .f-frame:nth-child(4) { order: 8; }
+  html:not(.pinned) .f-step { margin-top: 10vh; }
+  html:not(.pinned) .f-frame { margin-top: 40px; max-width: 1100px; }
+  html:not(.pinned) .themes .shot:not(:first-child) { display: none; }
 
   /* ---------- сцена распознавания ---------- */
   .ocr-scene { position: relative; border-radius: 14px; overflow: hidden; background: #0C0F15; aspect-ratio: 3 / 2;
@@ -232,12 +238,12 @@
   @media (max-width: 1100px) {
     .adv-grid { grid-template-columns: repeat(2, 1fr); }
     .feature-list { grid-template-columns: repeat(2, 1fr); }
-    html.motion .features-inner { grid-template-columns: 1fr; grid-template-rows: auto auto; align-content: center; gap: 26px; padding: 76px 6vw 0; }
-    html.motion .rail { display: none; }
-    html.motion .f-step h3 { margin: 12px 0; font-size: clamp(26px, 4.6vw, 40px); }
-    html.motion .f-step p { font-size: 15px; max-width: 640px; }
-    html.motion .tags { margin-top: 14px; }
-    html.motion .f-shots { width: min(100%, calc((100vh - 380px) * 1.5)); justify-self: center; }
+    html.pinned .features-inner { grid-template-columns: 1fr; grid-template-rows: auto auto; align-content: center; gap: 26px; padding: 76px 6vw 0; }
+    html.pinned .rail { display: none; }
+    html.pinned .f-step h3 { margin: 12px 0; font-size: clamp(26px, 4.6vw, 40px); }
+    html.pinned .f-step p { font-size: 15px; max-width: 640px; }
+    html.pinned .tags { margin-top: 14px; }
+    html.pinned .f-shots { width: min(100%, calc((100vh - 380px) * 1.5)); justify-self: center; }
   }
   @media (max-width: 900px) {
     .nav-links { display: none; }
@@ -781,6 +787,118 @@ document.querySelectorAll('.glow').forEach(card => card.addEventListener('pointe
   addEventListener('resize', resize);
   resize();
   if (!still) requestAnimationFrame(frame);
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js" integrity="sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh" crossorigin="anonymous"></script>
+<script>
+/* ================= ПРОКРУТКА (GSAP + ScrollTrigger) =================
+   Анимации включаются, только если GSAP загрузился и человек не просил меньше движения.
+   Все начальные «скрытые» состояния ставит этот скрипт: без него страница видна целиком. */
+(() => {
+  const root = document.documentElement;
+  const still = new URLSearchParams(location.search).has('still') ||
+                matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NAV = 70;
+
+  // Переход к секции: закреплённая секция — к началу закрепления, остальные — к верху минус меню.
+  SM.goTo = function goTo(hash, smooth) {
+    const el = hash && hash.length > 1 ? document.getElementById(hash.slice(1)) : null;
+    if (!el) return false;
+    let top = el.id === 'about' ? 0 : el.getBoundingClientRect().top + scrollY - NAV;
+    if (window.ScrollTrigger) {
+      const st = ScrollTrigger.getAll().find(t => t.pin && t.trigger === el);
+      if (st) top = st.start;
+    }
+    scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' });
+    return true;
+  };
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || !SM.goTo(a.getAttribute('href'), true)) return;
+    e.preventDefault();
+    history.pushState(null, '', a.getAttribute('href'));
+  });
+
+  if (!window.gsap || !window.ScrollTrigger || still) return;
+  root.classList.add('motion');
+  SM.motion = true;
+  gsap.registerPlugin(ScrollTrigger);
+
+  // первый экран
+  gsap.from('h1 .line > span', { yPercent: 110, duration: 1.5, ease: 'expo.out', stagger: 0.14, delay: 0.15 });
+  gsap.from(['.kicker', '.lead', '.cta', '.hero-foot'], { autoAlpha: 0, y: 24, duration: 1.3, ease: 'power3.out', stagger: 0.12, delay: 0.5 });
+  gsap.from('#planet-wrap .planet, #planet-wrap .planet-glow', { y: 120, opacity: 0, duration: 2.6, ease: 'expo.out', delay: 0.2 });
+  gsap.to('#planet-wrap', { y: -90, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+  gsap.to('#planet-wrap', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: '55% top', end: 'bottom top', scrub: true } });
+  gsap.to('.hero-content', { opacity: 0, y: -80, ease: 'none', scrollTrigger: { trigger: '.hero', start: '30% top', end: '85% top', scrub: true } });
+
+  // запуск: окно поднимается из-за горизонта и выпрямляется
+  gsap.timeline({ scrollTrigger: { trigger: '#launch', start: 'top top', end: '+=120%', scrub: 1, pin: true } })
+    .fromTo('#launch-shot', { yPercent: 55, scale: 0.78, rotateX: 32, opacity: 0.25 },
+                            { yPercent: 0, scale: 1, rotateX: 0, opacity: 1, ease: 'power2.out', duration: 1 })
+    .fromTo('#launch .caption', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.5 }, 0.35)
+    .to({}, { duration: 0.35 });
+
+  // телеметрия: счётчики и полоски
+  gsap.utils.toArray('.telemetry .cell').forEach((cell, i) => {
+    const el = cell.querySelector('[data-count]');
+    const to = +el.dataset.count, from = +(el.dataset.from || 0), box = { v: from };
+    const bar = cell.querySelector('.bar i');
+    el.textContent = from;
+    gsap.set(bar, { width: '0%' });
+    ScrollTrigger.create({ trigger: cell, start: 'top 85%', once: true, onEnter: () => {
+      gsap.to(box, { v: to, duration: from > to ? 2.2 : 1.4, delay: i * 0.08, ease: 'power3.out',
+                     onUpdate: () => { el.textContent = Math.round(box.v); } });
+      gsap.to(bar, { width: '100%', duration: 1.8, delay: i * 0.08, ease: 'power2.inOut' });
+    } });
+  });
+  gsap.from('.telemetry .section-head > *', { autoAlpha: 0, y: 40, duration: 1.2, ease: 'power3.out', stagger: 0.12,
+    scrollTrigger: { trigger: '.telemetry', start: 'top 75%' } });
+
+  // возможности: секция замирает, шаги и кадры сменяются (только на широких экранах)
+  const mm = gsap.matchMedia();
+  mm.add('(min-width: 700px)', () => {
+    root.classList.add('pinned');
+    const steps = gsap.utils.toArray('.f-step'), frames = gsap.utils.toArray('.f-frame');
+    const nodes = gsap.utils.toArray('.rail .node'), themes = gsap.utils.toArray('.themes .shot');
+    gsap.set(steps.slice(1), { autoAlpha: 0, y: 50 });
+    gsap.set(frames.slice(1), { autoAlpha: 0, scale: 1.05 });
+    gsap.set(themes.slice(1), { autoAlpha: 0 });
+    const total = steps.length;            // шаг i занимает отрезок [i, i+1)
+    const tl = gsap.timeline({ scrollTrigger: {
+      trigger: '#features', start: 'top top', end: '+=' + (total * 100) + '%', scrub: 0.8, pin: true,
+      onUpdate: self => {
+        const k = Math.min(total - 1, Math.floor(self.progress * total * 0.999));
+        nodes.forEach((n, i) => n.classList.toggle('on', i <= k));
+        SM.featureProgress = self.progress * total;   // для сцены распознавания
+        document.dispatchEvent(new CustomEvent('sm:features', { detail: SM.featureProgress }));
+      } } });
+    tl.fromTo('.f-shots', { yPercent: 8, opacity: 0.4 }, { yPercent: 0, opacity: 1, duration: 0.4 }, 0);
+    steps.forEach((s, i) => {
+      if (!i) return;
+      tl.to(steps[i - 1], { autoAlpha: 0, y: -50, duration: 0.25 }, i)
+        .to(s, { autoAlpha: 1, y: 0, duration: 0.35 }, i + 0.25)
+        .to(frames[i - 1], { autoAlpha: 0, scale: 0.95, duration: 0.4 }, i)
+        .to(frames[i], { autoAlpha: 1, scale: 1, duration: 0.45 }, i + 0.05);
+    });
+    themes.forEach((shot, j) => { if (j) tl.to(shot, { autoAlpha: 1, duration: 0.12 }, total - 1 + 0.35 + j * 0.13); });
+    tl.to('#rail-fill', { scaleY: 1, ease: 'none', duration: total - 0.4 }, 0).to({}, { duration: 0.4 }, total - 0.4);
+    return () => root.classList.remove('pinned');
+  });
+
+  // финал
+  gsap.from('.final > *', { autoAlpha: 0, y: 50, duration: 1.3, ease: 'power3.out', stagger: 0.12,
+    scrollTrigger: { trigger: '.final', start: 'top 70%' } });
+
+  // высоты меняются со сменой языка и после загрузки шрифтов
+  document.addEventListener('sm:lang', () => ScrollTrigger.refresh());
+  const settle = () => {
+    ScrollTrigger.refresh();
+    if (location.hash) SM.goTo(location.hash, false);
+  };
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(settle));
 })();
 </script>
 </body>
