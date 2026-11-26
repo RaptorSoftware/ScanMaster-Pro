@@ -61,9 +61,27 @@
 ## Интерфейс
 
 <p align="center">
-  <img src="app_screen.png" width="80%" alt="Главный экран">
+  <img src="shots/ru/home.webp" width="80%" alt="Главная">
   <br>
   <i>Главная: статистика, активность за неделю и недавние файлы</i>
+</p>
+
+<p align="center">
+  <img src="shots/ru/pdf_editor.webp" width="80%" alt="Редактор PDF">
+  <br>
+  <i>Редактор PDF: правки, подпись и печать поверх страницы</i>
+</p>
+
+<p align="center">
+  <img src="shots/ru/converter.webp" width="80%" alt="Изображения в PDF">
+  <br>
+  <i>Изображения в PDF: очередь, сжатие, пароль и распознавание текста</i>
+</p>
+
+<p align="center">
+  <img src="shots/ru/theme_editor.webp" width="80%" alt="Редактор темы">
+  <br>
+  <i>Редактор темы: конструктор своей темы с живым предпросмотром</i>
 </p>
 
 ---
