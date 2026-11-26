@@ -172,9 +172,9 @@
   .ocr-paper { position: absolute; left: 50%; top: 6%; width: 62%; transform: translateX(-50%); }
   .ocr-paper img { display: block; width: 100%; height: auto; border-radius: 2px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.9); }
   .ocr-boxes { position: absolute; inset: 0; }
-  .ocr-boxes i { position: absolute; border: 1px solid rgba(90,169,240,.55); background: rgba(90,169,240,.10); border-radius: 2px; }
+  .ocr-boxes i { position: absolute; border: 1px solid rgba(90,169,240,.55); background: rgba(90,169,240,.10); border-radius: 2px; transition: opacity .3s, background-color .3s, border-color .3s; }
   .ocr-boxes i.hit { border-color: #F2C14E; background: rgba(242,193,78,.35); }
-  .ocr-beam { position: absolute; left: -4%; right: -4%; height: 2px; top: 0; opacity: 0; background: linear-gradient(90deg, transparent, rgba(170,210,255,.9), transparent); box-shadow: 0 0 24px 6px rgba(90,169,240,.35); }
+  .ocr-beam { position: absolute; left: -4%; right: -4%; height: 2px; top: 0; opacity: 0; transition: opacity .3s; background: linear-gradient(90deg, transparent, rgba(170,210,255,.9), transparent); box-shadow: 0 0 24px 6px rgba(90,169,240,.35); }
   .ocr-search { position: absolute; left: 4%; bottom: 5%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 6px; background: rgba(12,15,21,.92); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--text); }
   .ocr-search svg { width: 14px; height: 14px; color: var(--dim); }
   .ocr-search .count { color: var(--dim); }
@@ -514,7 +514,7 @@
     "f4-text": "Шесть тем и конструктор своей, 18 шрифтов, 10 значков приложения. Тему можно описать кодом и поделиться файлом.",
     "tag-word": "Word в PDF", "tag-sign": "Подписи", "tag-stamp": "Печати", "tag-marker": "Маркер", "tag-redact": "Скрыть",
     "tag-search": "Поиск", "tag-copy": "Копирование", "tag-ru": "Русский", "tag-themes": "Темы", "tag-fonts": "Шрифты", "tag-icons": "Значки",
-    "ocr-query": "аренд",
+    "ocr-query": "аренд", "ocr-one": "совпадение", "ocr-few": "совпадения", "ocr-many": "совпадений",
     "adv-kicker": "Преимущества", "adv-title": "Сделано для работы,<br>а не для подписки.",
     "adv-1-title": "Бесплатно", "adv-1": "Без пробного периода, рекламы и платных функций.",
     "adv-2-title": "Всё на вашем ПК", "adv-2": "Файлы обрабатываются локально. В сеть — только за обновлениями.",
@@ -568,7 +568,7 @@
     "f4-text": "Six themes plus a builder for your own, 18 fonts, 10 app icons. Describe a theme in code and share it as a file.",
     "tag-word": "Word to PDF", "tag-sign": "Signatures", "tag-stamp": "Stamps", "tag-marker": "Highlighter", "tag-redact": "Redact",
     "tag-search": "Search", "tag-copy": "Copy", "tag-ru": "Russian", "tag-themes": "Themes", "tag-fonts": "Fonts", "tag-icons": "Icons",
-    "ocr-query": "lease",
+    "ocr-query": "tenant", "ocr-one": "match", "ocr-few": "matches", "ocr-many": "matches",
     "adv-kicker": "Why ScanMaster", "adv-title": "Built for work,<br>not for subscriptions.",
     "adv-1-title": "Free", "adv-1": "No trial, no ads, no paid tiers.",
     "adv-2-title": "Stays on your PC", "adv-2": "Files are processed locally. It goes online only for updates.",
@@ -899,6 +899,75 @@ document.querySelectorAll('.glow').forEach(card => card.addEventListener('pointe
     if (location.hash) SM.goTo(location.hash, false);
   };
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(settle));
+})();
+</script>
+
+<script>
+/* ================= СЦЕНА РАСПОЗНАВАНИЯ =================
+   Рамки — настоящий результат OCR Windows на демо-странице (shots/<язык>/ocr_words.json).
+   На шаге 03 закреплённой секции луч идёт сверху вниз, за ним загораются слова,
+   в конце строка поиска печатает слово и подсвечивает найденное. Без закрепления — сразу итог. */
+(() => {
+  const scene = document.getElementById('ocr-scene');
+  if (!scene) return;
+  const paper = scene.querySelector('.ocr-paper'), boxesEl = document.getElementById('ocr-boxes');
+  const beam = document.getElementById('ocr-beam'), queryEl = document.getElementById('ocr-query');
+  const countEl = document.getElementById('ocr-count');
+  const cache = {}, SCAN_END = 0.72;
+  let words = [];
+
+  const plural = (n, t) => {
+    if (SM.lang !== 'ru') return n === 1 ? t['ocr-one'] : t['ocr-many'];
+    const d = n % 10, h = n % 100;
+    return d === 1 && h !== 11 ? t['ocr-one'] : d >= 2 && d <= 4 && (h < 12 || h > 14) ? t['ocr-few'] : t['ocr-many'];
+  };
+
+  function progress() {
+    if (!document.documentElement.classList.contains('pinned') || SM.featureProgress === undefined) return 1;
+    return Math.max(0, Math.min(1, SM.featureProgress - 2));
+  }
+
+  function render(p) {
+    const visible = paper.offsetHeight ? Math.min(1, (scene.clientHeight - paper.offsetTop) / paper.offsetHeight) : 1;
+    const limit = Math.min(1, p / SCAN_END) * visible;
+    beam.style.top = (limit * 100) + '%';
+    beam.style.opacity = p > 0.01 && p < SCAN_END ? 1 : 0;
+    const t = TEXTS[SM.lang], q = t['ocr-query'];
+    const typed = p < SCAN_END ? '' : q.slice(0, Math.ceil(q.length * Math.min(1, (p - SCAN_END) / 0.14)));
+    const done = typed.length === q.length;
+    let hits = 0;
+    for (const w of words) {
+      const hit = done && w.t.includes(q);
+      w.el.style.opacity = p >= 1 || w.cy <= limit ? 1 : 0;
+      w.el.classList.toggle('hit', hit);
+      if (hit) hits++;
+    }
+    queryEl.textContent = typed || '…';
+    countEl.textContent = done ? `${hits} ${plural(hits, t)}` : '';
+  }
+
+  async function load(lang) {
+    cache[lang] = cache[lang] || fetch(`shots/${lang}/ocr_words.json`).then(r => r.json());
+    let data;
+    try { data = await cache[lang]; } catch (e) { delete cache[lang]; return; }
+    if (SM.lang !== lang) return;
+    boxesEl.textContent = '';
+    words = data.lines.flat().map(w => {
+      const el = document.createElement('i');
+      el.style.left = (w.x / data.width * 100) + '%';
+      el.style.top = (w.y / data.height * 100) + '%';
+      el.style.width = (w.w / data.width * 100) + '%';
+      el.style.height = (w.h / data.height * 100) + '%';
+      boxesEl.appendChild(el);
+      return { el, t: w.t.toLowerCase(), cy: (w.y + w.h / 2) / data.height };
+    });
+    render(progress());
+  }
+
+  document.addEventListener('sm:features', () => render(progress()));
+  document.addEventListener('sm:lang', e => load(e.detail));
+  addEventListener('resize', () => render(progress()));
+  load(SM.lang);
 })();
 </script>
 </body>
